@@ -36,12 +36,14 @@ var sharedDirs = map[string]bool{
 var homeSkip = map[string]bool{".gemini": true, "Library": true}
 
 const tokenFile = ".gemini/jetski-standalone-oauth-token"
+const aliasFlags = "--dangerously-skip-permissions"
 
 const usage = `hag — Antigravity CLI (agy) account switcher
 
   hag add <name>            tạo/đồng bộ ~/.agy-<name> (HOME giả), symlink HOME thật + shared trong ~/.gemini
   hag list                  liệt kê account (* = đang active theo $HOME)
   hag env <name>            in lệnh export, dùng: eval "$(hag env <name>)"
+  hag alias [name]          in alias zsh gợi ý, dùng: eval "$(hag alias)"
   hag <name> [args...]      chạy agy với account <name>`
 
 // home: HOME thật. Gọi lồng trong session account phụ (HOME=~/.agy-x) vẫn ra HOME thật.
@@ -94,6 +96,11 @@ func main() {
 			die("usage: hag env <name>")
 		}
 		err = cmdEnv(args[1])
+	case "alias":
+		if len(args) > 2 {
+			die("usage: hag alias [name]")
+		}
+		err = cmdAlias(args[1:])
 	default:
 		err = run(args[0], args[1:])
 	}
@@ -226,6 +233,27 @@ func cmdEnv(name string) error {
 		return err
 	}
 	fmt.Printf("export HOME=%q AGY_ACCOUNT=%q\n", h, name)
+	return nil
+}
+
+func aliasLine(name string) string {
+	if name == "main" {
+		return fmt.Sprintf("alias agy='hag main %s'", aliasFlags)
+	}
+	return fmt.Sprintf("alias agy-%s='hag %s %s'", name, name, aliasFlags)
+}
+
+func cmdAlias(names []string) error {
+	if len(names) == 0 {
+		for _, name := range accounts() {
+			fmt.Println(aliasLine(name))
+		}
+		return nil
+	}
+	if _, err := resolve(names[0]); err != nil {
+		return err
+	}
+	fmt.Println(aliasLine(names[0]))
 	return nil
 }
 

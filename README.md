@@ -33,16 +33,17 @@ hag work                  # chạy agy bằng account work (lần đầu: login 
 hag main -c               # args sau tên account chuyển thẳng cho agy
 hag list                  # * = account theo $HOME hiện tại; email lấy từ log agy
 eval "$(hag env work)"    # set HOME + AGY_ACCOUNT cho shell hiện tại (đổi HOME cả shell)
+eval "$(hag alias)"       # nạp alias cho shell hiện tại (hoặc: hag alias >> ~/.zshrc)
 ```
 
 Lần login đầu của account phụ, kiểm tra token đã tách: có file `~/.agy-work/.gemini/jetski-standalone-oauth-token`
 và item keychain `gemini`/`antigravity` không đổi ngày sửa (`security find-generic-password -s gemini -a antigravity`).
 
-Alias gợi ý trong `~/.zshrc`:
+Alias gợi ý trong `~/.zshrc`: thêm bằng `hag alias >> ~/.zshrc` hoặc nạp bằng `eval "$(hag alias)"`.
 
 ```sh
-alias agy-w='hag work'
-alias agy-w-yolo='hag work --dangerously-skip-permissions'
+alias agy='hag main --dangerously-skip-permissions'
+alias agy-work='hag work --dangerously-skip-permissions'
 ```
 
 `$AGY_ACCOUNT` được set khi chạy, statusline/hook có thể đọc để hiện account.
