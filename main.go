@@ -1,7 +1,7 @@
 // hag: chạy nhiều account Antigravity CLI (agy) song song bằng HOME giả.
 // main = HOME thật, <name> = ~/.agy-<name>. agy lưu token vào login keychain (key cố định gemini/antigravity),
 // nhưng keychain search list đi theo $HOME: dưới HOME giả không có keychain nên agy tự lưu token vào
-// $HOME/.gemini/jetski-standalone-oauth-token => token tách theo account.
+// $HOME/.gemini/antigravity-cli/antigravity-oauth-token => token tách theo account.
 package main
 
 import (
@@ -35,7 +35,7 @@ var sharedDirs = map[string]bool{
 // Entry top-level của HOME thật KHÔNG symlink sang HOME giả. Library kéo theo Keychains/Preferences => lộ keychain => chung token.
 var homeSkip = map[string]bool{".gemini": true, "Library": true}
 
-const tokenFile = ".gemini/jetski-standalone-oauth-token"
+const tokenFile = ".gemini/antigravity-cli/antigravity-oauth-token"
 const aliasFlags = "--dangerously-skip-permissions"
 
 const usage = `hag — Antigravity CLI (agy) account switcher
@@ -44,6 +44,7 @@ const usage = `hag — Antigravity CLI (agy) account switcher
   hag list                  liệt kê account (* = đang active theo $HOME)
   hag env <name>            in lệnh export, dùng: eval "$(hag env <name>)"
   hag alias [name]          in alias zsh gợi ý, dùng: eval "$(hag alias)"
+  hag quota [name]          quota còn lại (mặc định mọi account)
   hag <name> [args...]      chạy agy với account <name>`
 
 // home: HOME thật. Gọi lồng trong session account phụ (HOME=~/.agy-x) vẫn ra HOME thật.
@@ -101,6 +102,11 @@ func main() {
 			die("usage: hag alias [name]")
 		}
 		err = cmdAlias(args[1:])
+	case "quota":
+		if len(args) > 2 {
+			die("usage: hag quota [name]")
+		}
+		err = cmdQuota(args[1:])
 	default:
 		err = run(args[0], args[1:])
 	}
