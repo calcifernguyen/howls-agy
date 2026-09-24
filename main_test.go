@@ -92,3 +92,29 @@ func TestEmail(t *testing.T) {
 		t.Errorf("email = %q", got)
 	}
 }
+
+func TestAliasLine(t *testing.T) {
+	if got := aliasLine("main"); got != "alias agy='hag main --dangerously-skip-permissions'" {
+		t.Errorf("aliasLine(main) = %q, want %q", got, "alias agy='hag main --dangerously-skip-permissions'")
+	}
+	if got := aliasLine("work"); got != "alias agy-work='hag work --dangerously-skip-permissions'" {
+		t.Errorf("aliasLine(work) = %q, want %q", got, "alias agy-work='hag work --dangerously-skip-permissions'")
+	}
+}
+
+func TestCmdAlias(t *testing.T) {
+	h := t.TempDir()
+	t.Setenv("HOME", h)
+	if err := cmdAlias([]string{"nope"}); err == nil {
+		t.Error("cmdAlias(nope) want error, got nil")
+	}
+	if err := cmdAlias([]string{"bad/name"}); err == nil {
+		t.Error("cmdAlias(bad/name) want error, got nil")
+	}
+	if err := cmdAlias(nil); err != nil {
+		t.Errorf("cmdAlias(nil) err = %v", err)
+	}
+	if err := cmdAlias([]string{"main"}); err != nil {
+		t.Errorf("cmdAlias(main) err = %v", err)
+	}
+}
