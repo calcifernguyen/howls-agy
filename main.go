@@ -45,7 +45,9 @@ const usage = `hag — Antigravity CLI (agy) account switcher
   hag env <name>            in lệnh export, dùng: eval "$(hag env <name>)"
   hag alias [name]          in alias zsh gợi ý, dùng: eval "$(hag alias)"
   hag quota [name]          quota còn lại (mặc định mọi account)
-  hag <name> [args...]      chạy agy với account <name>`
+  hag default [name]        set/xem account mặc định (chưa set = main)
+  hag <name> [args...]      chạy agy với account <name>
+  hag [args...]             chạy agy với account mặc định (args bắt đầu bằng -)`
 
 // home: HOME thật. Gọi lồng trong session account phụ (HOME=~/.agy-x) vẫn ra HOME thật.
 func home() string {
@@ -79,12 +81,23 @@ func validName(name string) bool {
 
 func main() {
 	args := os.Args[1:]
-	if len(args) == 0 || args[0] == "-h" || args[0] == "--help" || args[0] == "help" {
+	if len(args) > 0 && (args[0] == "-h" || args[0] == "--help" || args[0] == "help") {
 		fmt.Println(usage)
+		return
+	}
+	if len(args) == 0 || strings.HasPrefix(args[0], "-") {
+		if err := run(defaultName(), args); err != nil {
+			die(err)
+		}
 		return
 	}
 	var err error
 	switch args[0] {
+	case "default":
+		if len(args) > 2 {
+			die("usage: hag default [name]")
+		}
+		err = cmdDefault(args[1:])
 	case "add":
 		if len(args) != 2 {
 			die("usage: hag add <name>")
@@ -113,6 +126,28 @@ func main() {
 	if err != nil {
 		die(err)
 	}
+}
+
+func defaultFile() string { return filepath.Join(mainDir(), ".hag-default") }
+
+// defaultName: account mặc định, chưa set = main.
+func defaultName() string {
+	b, _ := os.ReadFile(defaultFile())
+	if n := strings.TrimSpace(string(b)); n != "" {
+		return n
+	}
+	return "main"
+}
+
+func cmdDefault(names []string) error {
+	if len(names) == 0 {
+		fmt.Println(defaultName())
+		return nil
+	}
+	if _, err := resolve(names[0]); err != nil {
+		return err
+	}
+	return os.WriteFile(defaultFile(), []byte(names[0]+"\n"), 0o644)
 }
 
 func cmdAdd(name string) error {
@@ -243,8 +278,8 @@ func cmdEnv(name string) error {
 }
 
 func aliasLine(name string) string {
-	if name == "main" {
-		return fmt.Sprintf("alias agy='hag main %s'", aliasFlags)
+	if name == "main" { // alias chính chạy account mặc định
+		return fmt.Sprintf("alias agy='hag %s'", aliasFlags)
 	}
 	return fmt.Sprintf("alias agy-%s='hag %s %s'", name, name, aliasFlags)
 }

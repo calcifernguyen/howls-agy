@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -94,8 +95,8 @@ func TestEmail(t *testing.T) {
 }
 
 func TestAliasLine(t *testing.T) {
-	if got := aliasLine("main"); got != "alias agy='hag main --dangerously-skip-permissions'" {
-		t.Errorf("aliasLine(main) = %q, want %q", got, "alias agy='hag main --dangerously-skip-permissions'")
+	if got := aliasLine("main"); got != "alias agy='hag --dangerously-skip-permissions'" {
+		t.Errorf("aliasLine(main) = %q, want %q", got, "alias agy='hag --dangerously-skip-permissions'")
 	}
 	if got := aliasLine("work"); got != "alias agy-work='hag work --dangerously-skip-permissions'" {
 		t.Errorf("aliasLine(work) = %q, want %q", got, "alias agy-work='hag work --dangerously-skip-permissions'")
@@ -116,5 +117,27 @@ func TestCmdAlias(t *testing.T) {
 	}
 	if err := cmdAlias([]string{"main"}); err != nil {
 		t.Errorf("cmdAlias(main) err = %v", err)
+	}
+}
+
+func TestDefault(t *testing.T) {
+	h := t.TempDir()
+	t.Setenv("HOME", h)
+	os.MkdirAll(filepath.Join(h, ".gemini"), 0o755)
+
+	if got := defaultName(); got != "main" {
+		t.Errorf("chưa set: defaultName = %q, want main", got)
+	}
+	if err := cmdDefault([]string{"nope"}); err == nil || !strings.Contains(err.Error(), "chưa có") {
+		t.Errorf("cmdDefault(nope) want 'chưa có', got %v", err)
+	}
+	if err := cmdAdd("work"); err != nil {
+		t.Fatal(err)
+	}
+	if err := cmdDefault([]string{"work"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := defaultName(); got != "work" {
+		t.Errorf("defaultName = %q, want work", got)
 	}
 }

@@ -34,6 +34,8 @@ go build -o ~/.local/bin/hag .
 hag add work              # tạo/đồng bộ ~/.agy-work; item thật cũ -> <item>.hag-bak-<unix>
 hag work                  # chạy agy bằng account work (lần đầu: login trong agy)
 hag main -c               # args sau tên account chuyển thẳng cho agy
+hag default work          # set account mặc định (lưu file .hag-default); không tên = in default
+hag -c                    # không tên / args bắt đầu bằng - => chạy account mặc định
 hag list                  # * = account theo $HOME hiện tại; email lấy từ log agy
 hag quota [work]          # quota còn lại (5h, weekly), thanh màu xanh/vàng/đỏ; NO_COLOR=1 hoặc pipe thì không màu
 eval "$(hag env work)"    # set HOME + AGY_ACCOUNT cho shell hiện tại (đổi HOME cả shell)
@@ -46,7 +48,7 @@ và item keychain `gemini`/`antigravity` không đổi ngày sửa (`security fi
 Alias gợi ý trong `~/.zshrc`: thêm bằng `hag alias >> ~/.zshrc` hoặc nạp bằng `eval "$(hag alias)"`.
 
 ```sh
-alias agy='hag main --dangerously-skip-permissions'
+alias agy='hag --dangerously-skip-permissions'
 alias agy-work='hag work --dangerously-skip-permissions'
 ```
 
