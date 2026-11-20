@@ -23,6 +23,22 @@ func TestFormatQuota(t *testing.T) {
 	}
 }
 
+func TestGeminiGroup(t *testing.T) {
+	var m availableModels
+	json.Unmarshal([]byte(`{"models":{
+		"a":{"displayName":"Gemini 3 Flash","modelProvider":"MODEL_PROVIDER_GOOGLE","quotaInfo":{"remainingFraction":0.85,"resetTime":"2026-11-20T05:41:47Z"}},
+		"b":{"displayName":"Gemini 2.5 Pro","modelProvider":"MODEL_PROVIDER_GOOGLE","quotaInfo":{"remainingFraction":0.85,"resetTime":"2026-11-20T05:41:47Z"}},
+		"c":{"modelProvider":"MODEL_PROVIDER_GOOGLE","quotaInfo":{"remainingFraction":1}},
+		"d":{"displayName":"Claude Opus","modelProvider":"MODEL_PROVIDER_ANTHROPIC","quotaInfo":{"resetTime":"2026-11-25T03:56:36Z"}}}}`), &m)
+	g, ok := geminiGroup(m)
+	if !ok || g.DisplayName != "Gemini models" || len(g.Buckets) != 1 || g.Buckets[0].RemainingFraction != 0.85 {
+		t.Fatalf("got %+v", g)
+	}
+	if _, ok := geminiGroup(availableModels{}); ok {
+		t.Fatal("không có model Google phải trả false")
+	}
+}
+
 func TestReadTokenFile(t *testing.T) {
 	h := t.TempDir()
 	t.Setenv("HOME", h)

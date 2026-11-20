@@ -31,15 +31,48 @@ type oauthToken struct {
 	Expiry       time.Time `json:"expiry"`
 }
 
+type quotaBucket struct {
+	Window            string    `json:"window"`
+	ResetTime         time.Time `json:"resetTime"`
+	RemainingFraction float64   `json:"remainingFraction"`
+}
+
+type quotaGroup struct {
+	DisplayName string        `json:"displayName"`
+	Buckets     []quotaBucket `json:"buckets"`
+}
+
 type quotaSummary struct {
-	Groups []struct {
-		DisplayName string `json:"displayName"`
-		Buckets     []struct {
-			Window            string    `json:"window"`
+	Groups []quotaGroup `json:"groups"`
+}
+
+// availableModels: fetchAvailableModels; quota Gemini chỉ có ở đây (summary chỉ trả group Claude/GPT).
+type availableModels struct {
+	Models map[string]struct {
+		DisplayName   string `json:"displayName"`
+		ModelProvider string `json:"modelProvider"`
+		QuotaInfo     *struct {
+			RemainingFraction *float64  `json:"remainingFraction"`
 			ResetTime         time.Time `json:"resetTime"`
-			RemainingFraction float64   `json:"remainingFraction"`
-		} `json:"buckets"`
-	} `json:"groups"`
+		} `json:"quotaInfo"`
+	} `json:"models"`
+}
+
+// geminiGroup: gom model Google theo (fraction, reset) — thường cùng 1 quota chung.
+func geminiGroup(m availableModels) (quotaGroup, bool) {
+	g := quotaGroup{DisplayName: "Gemini models"}
+	seen := map[quotaBucket]bool{}
+	for _, md := range m.Models {
+		if md.ModelProvider != "MODEL_PROVIDER_GOOGLE" || md.DisplayName == "" || md.QuotaInfo == nil || md.QuotaInfo.RemainingFraction == nil {
+			continue
+		}
+		b := quotaBucket{Window: "quota", ResetTime: md.QuotaInfo.ResetTime, RemainingFraction: *md.QuotaInfo.RemainingFraction}
+		if !seen[b] {
+			seen[b] = true
+			g.Buckets = append(g.Buckets, b)
+		}
+	}
+	return g, len(g.Buckets) > 0
 }
 
 // readToken: token file của account; main không có file thì đọc keychain (go-keyring: "go-keyring-base64:<json>").
@@ -150,8 +183,17 @@ func fetchQuota(name string) (quotaSummary, error) {
 		json.Unmarshal(lca.Project, &p)
 		project = p.ID
 	}
-	err = cloudcode("retrieveUserQuotaSummary", tok, map[string]string{"project": project}, &q)
-	return q, err
+	body := map[string]string{"project": project}
+	if err := cloudcode("retrieveUserQuotaSummary", tok, body, &q); err != nil {
+		return q, err
+	}
+	var m availableModels // lỗi thì bỏ qua Gemini, vẫn in Claude/GPT
+	if cloudcode("fetchAvailableModels", tok, body, &m) == nil {
+		if g, ok := geminiGroup(m); ok {
+			q.Groups = append(q.Groups, g)
+		}
+	}
+	return q, nil
 }
 
 const barWidth = 20
